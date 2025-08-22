@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  pipeline:
+    build: .
+    container_name: pipeline-app
+    volumes:
+      - ./data:/app/data
+    command: python scripts/pipeline.py
