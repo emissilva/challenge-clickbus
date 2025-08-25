@@ -22,7 +22,7 @@ jobs:
       run: |
         docker-compose up --build
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pipeline-results
         path: data/results.csv
