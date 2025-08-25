@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+      # Adicione outras branches se necessário, por exemplo:
+      # - csv-version
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
@@ -18,3 +21,8 @@ jobs:
     - name: Build and run containers
       run: |
         docker-compose up --build
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: pipeline-results
+        path: data/results.csv
