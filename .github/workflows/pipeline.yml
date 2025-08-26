@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      # Adicione outras branches se necessário, por exemplo:
       # - csv-version
 
 jobs:

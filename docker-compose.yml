@@ -3,7 +3,10 @@ version: '3.8'
 services:
   pipeline:
     build: .
-    container_name: pipeline-app
+    container_name: pipeline-problemas
     volumes:
       - ./data:/app/data
-    command: python scripts/pipeline.py
+    command: >
+      python scripts/problema1.py &&
+      python scripts/problema2.py &&
+      python scripts/problema3.py
