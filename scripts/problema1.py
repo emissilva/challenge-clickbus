@@ -5,6 +5,7 @@ from sklearn.cluster import KMeans
 # Carregar os dados
 df = pd.read_csv('data/df_tratado.csv')
 
+
 # Pré-processamento e Cálculo das Métricas RFM
 df['purchase_datetime'] = pd.to_datetime(df['date_purchase'] + ' ' + df['time_purchase'])
 today = df['purchase_datetime'].max() + pd.Timedelta(days=1)

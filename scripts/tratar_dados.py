@@ -2,6 +2,8 @@ import pandas as pd
 
 # Carregar os dados
 df = pd.read_csv('data/df_amostragem.csv')
+print(f"O DataFrame está vazio? {df.empty}")
+
 
 # Agrupar colunas por tipo de hash
 place_geral = [
