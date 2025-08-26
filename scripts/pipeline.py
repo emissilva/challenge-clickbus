@@ -25,5 +25,5 @@ y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 
 # Export results
-with open('data/results.txt', 'w') as f:
+with open('data/results.csv', 'w') as f:
     f.write(f'Accuracy: {accuracy:.2f}\n')
