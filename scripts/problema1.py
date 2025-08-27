@@ -26,6 +26,6 @@ kmeans.fit(scaled_features)
 rfm_df['cluster'] = kmeans.labels_
 
 # Salvar o resultado
-rfm_df.to_csv('data/resultado_p1.csv', index=False)
+rfm_df.to_csv('data/resultados/resultado_p1.csv', index=False)
 
 print("Clusterização concluída. O arquivo 'data/resultado_p1.csv' foi salvo com sucesso.")
