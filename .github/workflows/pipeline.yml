@@ -4,6 +4,7 @@ on:
     branches:
       - main
       # - csv-version
+  workflow_dispatch:
 
 jobs:
   build-and-run:
