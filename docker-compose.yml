@@ -6,8 +6,4 @@ services:
     container_name: pipeline-problemas
     volumes:
       - ./data:/app/data
-    command: >
-      python scripts/tratar_dados.py &&
-      python scripts/problema1.py &&
-      python scripts/problema2.py &&
-      python scripts/problema3.py
+    command: sh -c "python scripts/tratar_dados.py && python scripts/problema1.py && python scripts/problema2.py && python scripts/problema3.py"
