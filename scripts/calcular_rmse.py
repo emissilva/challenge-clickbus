@@ -8,6 +8,10 @@ df_tratado['date_purchase'] = pd.to_datetime(df_tratado['date_purchase'])
 df_tratado_sorted = df_tratado.sort_values(['fk_contact', 'date_purchase'])
 df_tratado_sorted['next_purchase_date'] = df_tratado_sorted.groupby('fk_contact')['date_purchase'].shift(-1)
 df_tratado_sorted['days_to_next_purchase'] = (df_tratado_sorted['next_purchase_date'] - df_tratado_sorted['date_purchase']).dt.days
+
+# Remover as linhas com NaN antes de calcular o target
+df_tratado_sorted.dropna(subset=['days_to_next_purchase'], inplace=True)
+
 df_target_reg = df_tratado_sorted.groupby('fk_contact')['days_to_next_purchase'].min().reset_index()
 
 # Calcular a média do target
