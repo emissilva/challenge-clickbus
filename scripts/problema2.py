@@ -48,7 +48,7 @@ y_reg = data['target_reg']
 
 # 5. Treinar e avaliar o modelo de CLASSIFICAÇÃO
 X_train_class, X_test_class, y_train_class, y_test_class = train_test_split(X, y_class, test_size=0.2, random_state=42)
-model_class = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+model_class = XGBClassifier(eval_metric='logloss', random_state=42) # Parâmetro removido
 model_class.fit(X_train_class, y_train_class)
 predictions_class = model_class.predict(X_test_class)
 accuracy_class = accuracy_score(y_test_class, predictions_class)
@@ -56,10 +56,10 @@ print(f"Acurácia do modelo de Classificação (Janela de {PREDICTION_WINDOW_DAY
 
 # 6. Treinar e avaliar o modelo de REGRESSÃO
 X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(X, y_reg, test_size=0.2, random_state=42)
-model_reg = XGBRegressor(use_label_encoder=False, eval_metric='rmse', random_state=42)
+model_reg = XGBRegressor(eval_metric='rmse', random_state=42) # Parâmetro removido
 model_reg.fit(X_train_reg, y_train_reg)
 predictions_reg = model_reg.predict(X_test_reg)
-rmse_reg = mean_squared_error(y_test_reg, predictions_reg, squared=False)
+rmse_reg = np.sqrt(mean_squared_error(y_test_reg, predictions_reg)) # Cálculo manual
 print(f"RMSE do modelo de Regressão: {rmse_reg:.2f} dias")
 
 # 7. Salvar as previsões
