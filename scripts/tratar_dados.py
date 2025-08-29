@@ -3,7 +3,7 @@ import sys
 
 try:
     # 1. Carregar os dados
-    df = pd.read_csv('data/df_amostragem.csv')
+    df = pd.read_csv('data/df_t.csv')
     
     # 2. Agrupar colunas por tipo de hash
     place_columns = [
