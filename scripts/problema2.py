@@ -7,7 +7,7 @@ import argparse
 
 # Configurar o argparse para a janela de previsão
 parser = argparse.ArgumentParser(description='Script para prever a próxima compra.')
-parser.add_argument('prediction_window', type=int, default=30, nargs='?',
+parser.add_argument('prediction_window', type=int, default=7, nargs='?',
                     help='Janela de tempo para a previsão (em dias, ex: 7 ou 30).')
 args = parser.parse_args()
 PREDICTION_WINDOW_DAYS = args.prediction_window
