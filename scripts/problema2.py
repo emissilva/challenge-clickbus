@@ -1,7 +1,6 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
-from sklearn.linear_model import LinearRegression
+from xgboost import XGBClassifier, XGBRegressor
 from sklearn.metrics import accuracy_score, mean_squared_error
 import numpy as np
 import argparse
@@ -39,9 +38,6 @@ df_target_reg.rename(columns={'days_to_next_purchase': 'target_reg'}, inplace=Tr
 # 3. Juntar features e targets
 data = pd.merge(df_clusters_rfm, df_target_class, on='fk_contact', how='left')
 data = pd.merge(data, df_target_reg, on='fk_contact', how='left')
-print("Valores NaN após o merge:")
-print(data.isnull().sum())
-
 data['target_class'] = data['target_class'].fillna(0)
 data = data.dropna()
 
@@ -60,7 +56,7 @@ print(f"Acurácia do modelo de Classificação (Janela de {PREDICTION_WINDOW_DAY
 
 # 6. Treinar e avaliar o modelo de REGRESSÃO
 X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(X, y_reg, test_size=0.2, random_state=42)
-model_reg = LinearRegression()
+model_reg = XGBRegressor(eval_metric='rmse', random_state=42)
 model_reg.fit(X_train_reg, y_train_reg)
 predictions_reg = model_reg.predict(X_test_reg)
 rmse_reg = np.sqrt(mean_squared_error(y_test_reg, predictions_reg))
