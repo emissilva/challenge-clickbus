@@ -21,23 +21,7 @@ O pipeline é executado em sequência e consiste nos seguintes scripts:
 
 A estrutura de pastas e arquivos do repositório é a seguinte:
 
-challenge-clickbus/
-├── .github/
-│   └── workflows/
-│       └── pipeline.yml       # Workflow do GitHub Actions
-├── data/
-│   ├── raw/                  # Dados brutos
-│   │   └── df_amostragem.csv
-│   └── resultados/           # Arquivos de saída
-│       ├── resultado_p1.csv
-│       └── resultado_p2.csv
-├── scripts/
-│   ├── problema1.py
-│   └── problema2.py
-├── tratar_dados.py
-├── requirements.txt           # Dependências do Python
-├── Dockerfile                 # Imagem do contêiner
-└── docker-compose.yml         # Orquestração do contêiner
+
 
 ## 4. Pré-requisitos
 
@@ -51,7 +35,7 @@ Para rodar o projeto localmente, você precisa ter o **Git** e o **Docker** ou *
 1.  **Clone o repositório:**
     ```bash
     git clone https://github.com/emissilva/challenge-clickbus
-    cd seu-projeto
+    cd challenge-clickbus
     ```
 2.  **Inicie o pipeline:**
     Execute este comando para construir a imagem e rodar o pipeline.
