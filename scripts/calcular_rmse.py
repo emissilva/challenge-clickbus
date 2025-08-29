@@ -3,7 +3,7 @@ from sklearn.metrics import mean_squared_error
 import numpy as np
 
 # Carregar o DataFrame com o target de regressão
-df_tratado = pd.read_csv('pipeline-dados-automatizado/data/df_tratado.csv')
+df_tratado = pd.read_csv('challenge-clickbus/data/df_tratado.csv')
 df_tratado['date_purchase'] = pd.to_datetime(df_tratado['date_purchase'])
 df_tratado_sorted = df_tratado.sort_values(['fk_contact', 'date_purchase'])
 df_tratado_sorted['next_purchase_date'] = df_tratado_sorted.groupby('fk_contact')['date_purchase'].shift(-1)

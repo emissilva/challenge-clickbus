@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 # Carregar os dados
-df = pd.read_csv('data/df_tratado.csv')
+df = pd.read_csv('challenge-clickbus/data/df_tratado.csv')
 
 
 # Pré-processamento e Cálculo das Métricas RFM
@@ -26,6 +26,6 @@ kmeans.fit(scaled_features)
 rfm_df['cluster'] = kmeans.labels_
 
 # Salvar o resultado
-rfm_df.to_csv('data/resultados/resultado_p1.csv', index=False)
+rfm_df.to_csv('challenge-clickbus/data/resultados/resultado_p1.csv', index=False)
 
-print("Clusterização concluída. O arquivo 'data/resultado_p1.csv' foi salvo com sucesso.")
+print("Clusterização concluída. O arquivo 'resultado_p1.csv' foi salvo com sucesso.")
