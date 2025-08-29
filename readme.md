@@ -21,7 +21,7 @@ O pipeline é executado em sequência e consiste nos seguintes scripts:
 
 A estrutura de pastas e arquivos do repositório é a seguinte:
 
-Seu-projeto/
+challenge-clickbus/
 ├── .github/
 │   └── workflows/
 │       └── pipeline.yml       # Workflow do GitHub Actions
