@@ -21,7 +21,7 @@ O pipeline é executado em sequência e consiste nos seguintes scripts:
 
 A estrutura de pastas e arquivos do repositório é a seguinte:
 
-seu-projeto/
+Seu-projeto/
 ├── .github/
 │   └── workflows/
 │       └── pipeline.yml       # Workflow do GitHub Actions
@@ -50,7 +50,7 @@ Para rodar o projeto localmente, você precisa ter o **Git** e o **Docker** ou *
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/emissilva/challenge-clickbus](https://github.com/emissilva/challenge-clickbus)
+    git clone https://github.com/emissilva/challenge-clickbus
     cd seu-projeto
     ```
 2.  **Inicie o pipeline:**
