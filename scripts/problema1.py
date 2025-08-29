@@ -3,7 +3,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 # Carregar os dados
-df = pd.read_csv('challenge-clickbus/data/df_tratado.csv')
+df = pd.read_csv('data/df_tratado.csv')
 
 
 # Pré-processamento e Cálculo das Métricas RFM
