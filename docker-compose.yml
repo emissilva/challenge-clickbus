@@ -3,7 +3,7 @@ version: '3.8'
 services:
   pipeline:
     build: .
-    container_name: pipeline-problemas
+    container_name: scripts-python
     volumes:
       - ./data:/app/data
     command: sh -c "python scripts/tratar_dados.py && python scripts/problema1.py && python scripts/problema2.py && python scripts/problema3.py"
