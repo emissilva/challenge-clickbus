@@ -14,8 +14,8 @@ args = parser.parse_args()
 PREDICTION_WINDOW_DAYS = args.prediction_window
 
 # 1. Carregar os arquivos de entrada
-df_tratado = pd.read_csv('challenge-clickbus/data/df_tratado.csv')
-df_clusters_rfm = pd.read_csv('challenge-clickbus/data/resultados/resultado_p1.csv')
+df_tratado = pd.read_csv('data/df_tratado.csv')
+df_clusters_rfm = pd.read_csv('data/resultados/resultado_p1.csv')
 
 # 2. Pré-processamento e criação das features e targets
 df_tratado['date_purchase'] = pd.to_datetime(df_tratado['date_purchase'])
@@ -70,4 +70,4 @@ print(f"RMSE do modelo de Regressão: {rmse_reg:.2f} dias")
 predictions_df = X_test_class.copy()
 predictions_df['predicted_class'] = predictions_class
 predictions_df['predicted_reg'] = predictions_reg
-predictions_df.to_csv('challenge-clickbus/data/resultados/resultado_p2.csv', index=False)
+predictions_df.to_csv('data/resultados/resultado_p2.csv', index=False)
