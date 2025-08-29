@@ -21,14 +21,33 @@ O pipeline é executado em sequência e consiste nos seguintes scripts:
 
 A estrutura de pastas e arquivos do repositório é a seguinte:
 
-
+```
+challenge-clickbus/
+├── .github/
+│   └── workflows/
+│       └── pipeline.yml       # Workflow do GitHub Actions
+├── data/
+│   ├── df_t.csv               # Dados brutos
+│   ├── df_amostragem.csv      # Dados para teste rápido
+│   ├── df_tratado.csv         # Dados tratados (remoção de hashes e sujeiras)
+│   └── resultados/            # Arquivos de saída
+│       ├── resultado_p1.csv
+│       └── resultado_p2.csv
+├── scripts/
+│   ├── tratar_dados.py
+│   ├── problema1.py
+│   └── problema2.py
+├── requirements.txt           # Dependências do Python
+├── Dockerfile                 # Imagem do contêiner
+└── docker-compose.yml         # Orquestração do contêiner
+```
 
 ## 4. Pré-requisitos
 
 Para rodar o projeto localmente, você precisa ter o **Git** e o **Docker** ou **Podman** instalados em sua máquina.
 
 * Para usar o Podman, instale também o `podman-compose` com `pip install podman-compose`.
-* Para arquivos grandes (>100MB), é necessário o **Git LFS**.
+* Por possuir arquivos grandes (>100MB), é necessário utilizar o **Git LFS**.
 
 ## 5. Como Executar
 
