@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # 1. Carregar os dados
-df = pd.read_csv('data/df_t.csv', sep=',')
+df = pd.read_csv('data/df_t.csv')
 
 # 2. Agrupar colunas por tipo de hash
 place_columns = [
@@ -48,9 +48,18 @@ for col in single_columns:
 df['purchase_datetime'] = pd.to_datetime(df['date_purchase'] + ' ' + df['time_purchase'])
 df = df.drop(columns=['date_purchase', 'time_purchase'])
 
-# 7. Salvar o resultado
-output_dir = 'data'
+for col in df.select_dtypes(include='object').columns:
+    df[col] = df[col].astype('category')
+
+# 7. Salvar um arquivo CSV para cada ano
+output_dir = 'data/data_tratado'
 os.makedirs(output_dir, exist_ok=True)
-df.to_csv(os.path.join(output_dir, 'df_tratado.csv'), index=False)
+
+df['year'] = df['purchase_datetime'].dt.year
+for year, group in df.groupby('year'):
+    file_path = os.path.join(output_dir, f'df_tratado_{year}.csv')
+    group = group.drop(columns=['year']) # Remove a coluna 'year' do arquivo de saída
+    group.to_csv(file_path, index=False)
+    print(f"Arquivo salvo: {file_path}")
 
 print("Tratamento de hashes concluído.")
