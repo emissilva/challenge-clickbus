@@ -5,9 +5,14 @@ from sklearn.cluster import KMeans
 # 1. Carregar os dados
 df = pd.read_csv('data/df_tratado.csv')
 
-
 # 2. Pré-processamento e Cálculo das Métricas RFM
-df['purchase_datetime'] = pd.to_datetime(df['date_purchase'] + ' ' + df['time_purchase'])
+# Remove as linhas onde gmv_success é menor ou igual a zero
+initial_rows = len(df)
+df = df[df['gmv_success'] > 0]
+rows_removed = initial_rows - len(df)
+print(f"Linhas removidas por gmv_success <= 0: {rows_removed}")
+
+df['purchase_datetime'] = pd.to_datetime(df['purchase_datetime'])
 today = df['purchase_datetime'].max() + pd.Timedelta(days=1)
 rfm_df = df.groupby('fk_contact').agg(
     recency=('purchase_datetime', lambda x: (today - x.max()).days),
