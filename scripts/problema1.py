@@ -43,7 +43,7 @@ for ano in anos_disponiveis:
     kmeans = KMeans(n_clusters=3, random_state=42, n_init='auto')
     kmeans.fit(scaled_features)
     rfm_df['cluster'] = kmeans.labels_
-'''
+    '''
     # 6. Salvar o resultado
     output_file = f'data/resultados/resultado_p1_{ano}.csv'
     rfm_df.to_csv(output_file, index=False)
