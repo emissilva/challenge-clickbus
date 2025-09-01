@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier, XGBRegressor
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error
 import numpy as np
 import argparse
 import os
@@ -17,10 +17,9 @@ PREDICTION_WINDOW_DAYS = args.prediction_window
 anos_disponiveis = [2013,2014,2015,2016,2017,2018, 2019, 2020, 2021, 2022, 2023,2024]
 
 for ano in anos_disponiveis:
-    file_path_tratado = f'data/resultados/df_tratado_{ano}.csv'
+    file_path_tratado = f'data/data_tratado/df_tratado_{ano}.csv'
     file_path_clusters = f'data/resultados/resultado_p1_{ano}.csv'
     
-    # Verifique se os arquivos existem antes de processar
     if not os.path.exists(file_path_tratado) or not os.path.exists(file_path_clusters):
         print(f"Aviso: Arquivos para o ano {ano} não encontrados. Pulando.")
         continue
@@ -32,12 +31,12 @@ for ano in anos_disponiveis:
     df_clusters_rfm = pd.read_csv(file_path_clusters)
 
     # 2. Pré-processamento e criação das features e targets
-    df_tratado['date_purchase'] = pd.to_datetime(df_tratado['date_purchase'])
-    df_tratado_sorted = df_tratado.sort_values(['fk_contact', 'date_purchase'])
+    df_tratado['purchase_datetime'] = pd.to_datetime(df_tratado['purchase_datetime'])
+    df_tratado_sorted = df_tratado.sort_values(['fk_contact', 'purchase_datetime'])
 
     # Criar o target para a classificação (compra nos próximos X dias)
-    cutoff_date_class = df_tratado['date_purchase'].max() - pd.Timedelta(days=PREDICTION_WINDOW_DAYS)
-    df_predict_class = df_tratado[df_tratado['date_purchase'] > cutoff_date_class].copy()
+    cutoff_date_class = df_tratado['purchase_datetime'].max() - pd.Timedelta(days=PREDICTION_WINDOW_DAYS)
+    df_predict_class = df_tratado[df_tratado['purchase_datetime'] > cutoff_date_class].copy()
     df_target_class = df_predict_class.groupby('fk_contact').agg(
         purchased_in_window=('nk_ota_localizer_id', 'count')
     ).reset_index()
@@ -45,8 +44,8 @@ for ano in anos_disponiveis:
     df_target_class = df_target_class.drop(columns=['purchased_in_window'])
 
     # Criar o target para a regressão (dias até a próxima compra)
-    df_tratado_sorted['next_purchase_date'] = df_tratado_sorted.groupby('fk_contact')['date_purchase'].shift(-1)
-    df_tratado_sorted['days_to_next_purchase'] = (df_tratado_sorted['next_purchase_date'] - df_tratado_sorted['date_purchase']).dt.days
+    df_tratado_sorted['next_purchase_date'] = df_tratado_sorted.groupby('fk_contact')['purchase_datetime'].shift(-1)
+    df_tratado_sorted['days_to_next_purchase'] = (df_tratado_sorted['next_purchase_date'] - df_tratado_sorted['purchase_datetime']).dt.days
     df_target_reg = df_tratado_sorted.groupby('fk_contact')['days_to_next_purchase'].min().reset_index()
     df_target_reg.rename(columns={'days_to_next_purchase': 'target_reg'}, inplace=True)
 

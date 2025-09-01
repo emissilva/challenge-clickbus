@@ -38,8 +38,7 @@ for ano in anos_disponiveis:
     scaler = StandardScaler()
     scaled_features = scaler.fit_transform(features)
 
-    # 5. Aplicar a clusterização K-Means (com 3 clusters para o MVP)
-  
+    # 5. Aplicar a clusterização K-Means
     kmeans = KMeans(n_clusters=7, random_state=42, n_init='auto')
     kmeans.fit(scaled_features)
     rfm_df['cluster'] = kmeans.labels_
