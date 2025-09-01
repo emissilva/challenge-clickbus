@@ -1,7 +1,8 @@
+# Seu código
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier, XGBRegressor
-from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import accuracy_score, mean_squared_error
 import numpy as np
 import argparse
 import os
@@ -14,7 +15,7 @@ args = parser.parse_args()
 PREDICTION_WINDOW_DAYS = args.prediction_window
 
 # A lista de anos que você deseja processar
-anos_disponiveis = [2013,2014,2015,2016,2017,2018, 2019, 2020, 2021, 2022, 2023,2024]
+anos_disponiveis = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
 
 for ano in anos_disponiveis:
     file_path_tratado = f'data/data_tratado/df_tratado_{ano}.csv'
@@ -55,8 +56,17 @@ for ano in anos_disponiveis:
     data['target_class'] = data['target_class'].fillna(0)
     data = data.dropna()
 
+    # --- Adicione o código de verificação aqui ---
+    print("\nResumo estatístico das features:")
+    print(data.describe().to_markdown(numalign="left", stralign="left"))
+
+    print("\nMatriz de correlação:")
+    print(data.corr(numeric_only=True).to_markdown(numalign="left", stralign="left"))
+
+    # --- O código para treinar o modelo começa aqui ---
     # 4. Separar features (X) e targets (y)
-    X = data[['recency', 'frequency', 'monetary', 'cluster']]
+    features_cols = ['recency', 'frequency', 'monetary', 'cluster']
+    X = data[features_cols]
     y_class = data['target_class']
     y_reg = data['target_reg']
 
@@ -77,7 +87,9 @@ for ano in anos_disponiveis:
     print(f"RMSE do modelo de Regressão (Ano {ano}): {rmse_reg:.2f} dias")
 
     # 7. Salvar as previsões
-    predictions_df = X_test_class.copy()
+    # Corrigido: Pegar o fk_contact do dataframe original 'data'
+    # para garantir que ele seja associado corretamente aos resultados
+    predictions_df = data.loc[X_test_class.index, ['fk_contact'] + features_cols].copy()
     predictions_df['predicted_class'] = predictions_class
     predictions_df['predicted_reg'] = predictions_reg
     predictions_df.to_csv(f'data/resultados/problema2/resultado_p2_{ano}.csv', index=False)
