@@ -18,7 +18,7 @@ anos_disponiveis = [2013,2014,2015,2016,2017,2018, 2019, 2020, 2021, 2022, 2023,
 
 for ano in anos_disponiveis:
     file_path_tratado = f'data/data_tratado/df_tratado_{ano}.csv'
-    file_path_clusters = f'data/resultados/resultado_p1_{ano}.csv'
+    file_path_clusters = f'data/resultados/problema1/resultado_p1_{ano}.csv'
     
     if not os.path.exists(file_path_tratado) or not os.path.exists(file_path_clusters):
         print(f"Aviso: Arquivos para o ano {ano} não encontrados. Pulando.")
@@ -80,5 +80,5 @@ for ano in anos_disponiveis:
     predictions_df = X_test_class.copy()
     predictions_df['predicted_class'] = predictions_class
     predictions_df['predicted_reg'] = predictions_reg
-    predictions_df.to_csv(f'data/resultados/resultado_p2_{ano}.csv', index=False)
+    predictions_df.to_csv(f'data/resultados/problema2/resultado_p2_{ano}.csv', index=False)
     print(f"Previsões para o ano {ano} salvas em 'resultado_p2_{ano}.csv'.")

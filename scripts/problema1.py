@@ -44,6 +44,6 @@ for ano in anos_disponiveis:
     rfm_df['cluster'] = kmeans.labels_
 
     # 6. Salvar o resultado
-    output_file = f'data/resultados/resultado_p1_{ano}.csv'
+    output_file = f'data/resultados/problema1/resultado_p1_{ano}.csv'
     rfm_df.to_csv(output_file, index=False)
     print(f"Clusterização para o ano {ano} concluída. O arquivo '{output_file}' foi salvo com sucesso.")
