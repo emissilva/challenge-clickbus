@@ -62,23 +62,39 @@ Gerar previsões simples de recompra para cada cliente usando regras heurística
 
 
 
+
 ## `scripts/desafio_3.py` – Previsão do Próximo Trecho (Multi-classe)
 
 ### Objetivo
-Prever, para cada cliente, qual o próximo par origem-destino (trecho) mais provável de ser comprado (classificação multi-classe), usando apenas métricas agregadas.
+Prever, para cada cliente, qual o próximo par origem-destino (trecho) mais provável de ser comprado (classificação multi-classe), usando métricas históricas, contextuais, comportamentais e de cluster.
 
 ### Principais etapas
 1. Leitura dos datasets agregados e detalhados:
-	- `dados/resultados/desafio_1/df_tratado.csv` (métricas agregadas)
-	- `dados/resultados/desafio_1/detalhado_tratado.csv` (para calcular o trecho mais frequente)
-2. Para cada cliente, identificação do trecho (origem-destino) mais frequente no histórico.
-3. Remoção de classes raras (trechos pouco frequentes, agrupados como 'outros').
-4. Treinamento de modelo de classificação (LogisticRegression multinomial, balanceada) para prever o próximo trecho provável, usando apenas métricas agregadas.
-5. Baseline: sempre prever o trecho mais comum do dataset.
-6. Função para prever para cliente específico.
-7. Salvamento dos resultados:
-	- `dados/resultados/desafio_3/saida_completa.log`: log completo dos resultados e métricas.
-	- `dados/resultados/desafio_3/resultados_classificacao.csv`: real vs previsto para cada cliente no teste.
+	- `dados/resultados/desafio_1/df_tratado.csv` (métricas agregadas, incluindo cluster do cliente)
+	- `dados/resultados/desafio_1/detalhado_tratado.csv` (para cálculo de features históricas e contextuais)
+2. Para cada cliente, constrói um dataset temporal com uma linha por compra, contendo features históricas, contextuais e comportamentais.
+3. **Features utilizadas:**
+	- recencia, frequencia, monetario, ticket_medio, destinos_unicos, empresas_diferentes, meses_distintos, dias_semana_distintos
+	- mês da compra atual, dia da semana da compra atual
+	- intervalo médio entre compras, tempo desde a primeira compra
+	- trecho mais frequente do cliente até o momento, empresa mais frequente até o momento, último trecho realizado
+	- cluster do cliente (obtido do arquivo agregado)
+4. **Agrupamento de classes:**
+	- Apenas os N (ex: 20) trechos mais frequentes são mantidos como classes. Os demais são agrupados como "outros" e excluídos do treinamento/teste.
+5. **Modelagem:**
+	- O modelo principal é uma `LogisticRegression` multinomial balanceada, robusta para múltiplas classes e dados tabulares.
+	- As features categóricas são codificadas automaticamente.
+	- O baseline consiste em prever sempre o trecho mais comum do dataset.
+6. **Treinamento:**
+	- O dataset é dividido em treino e teste (80/20, estratificado).
+	- O modelo é treinado apenas nas classes mais frequentes.
+	- Métricas de classificação (accuracy, f1-score, precision, recall) são salvas para o conjunto geral e por cluster de cliente.
+	- O script também realiza uma regressão para prever o número de dias até a próxima compra (XGBoostRegressor).
+7. **Função para previsão individual:**
+	- Permite prever o próximo trecho provável para um cliente específico, usando o histórico mais recente.
+8. **Salvamento dos resultados:**
+	- `dados/resultados/desafio_3/saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
+	- `dados/resultados/desafio_3/resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
 
 **Observação:** Todo o pipeline considera apenas os últimos 365 dias, garantindo previsões atualizadas e alinhadas com o tratamento de dados.
 

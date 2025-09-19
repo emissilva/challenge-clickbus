@@ -17,8 +17,8 @@ os.makedirs('dados/resultados/desafio_3', exist_ok=True)
 with open(log_path, 'w') as f, redirect_stdout(f):
     # 1. Leitura e tratamento dos dados detalhados (amostragem para evitar travamento)
     detalhado = pd.read_csv('dados/resultados/desafio_1/detalhado_tratado.csv')
-    if len(detalhado) > 50000:
-        detalhado = detalhado.sample(n=50000, random_state=42)
+    if len(detalhado) > 100000:
+        detalhado = detalhado.sample(n=100000, random_state=42)
     detalhado['purchase_datetime'] = pd.to_datetime(detalhado['purchase_datetime'])
     data_max = detalhado['purchase_datetime'].max()
     data_min = data_max - pd.Timedelta(days=365)
@@ -53,9 +53,53 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     detalhado['fk_departure_ota_bus_company'] = detalhado['fk_departure_ota_bus_company'].astype(str)
     detalhado['purchase_datetime'] = pd.to_datetime(detalhado['purchase_datetime'])
 
-    # Criar colunas auxiliares para mês e dia da semana como inteiros
+    # Criar colunas auxiliares para mês e dia da semana como inteiros (atuais)
     detalhado['mes_compra'] = detalhado['purchase_datetime'].dt.month.astype(int)
     detalhado['dia_semana_compra'] = detalhado['purchase_datetime'].dt.weekday.astype(int)
+    detalhado['mes_atual'] = detalhado['mes_compra']
+    detalhado['dia_semana_atual'] = detalhado['dia_semana_compra']
+    # Intervalo médio entre compras (rolling mean)
+    detalhado['intervalo_entre_compras'] = detalhado.groupby('fk_contact')['purchase_datetime'].diff().dt.days
+    detalhado['intervalo_medio'] = detalhado.groupby('fk_contact')['intervalo_entre_compras'].transform(lambda x: x.expanding().mean().shift().fillna(0))
+
+    # Tempo desde a primeira compra
+    detalhado['primeira_compra'] = detalhado.groupby('fk_contact')['purchase_datetime'].transform('min')
+    detalhado['tempo_desde_primeira'] = (detalhado['purchase_datetime'] - detalhado['primeira_compra']).dt.days
+
+    # Trecho mais frequente do cliente até o momento (rolling mode, sem expanding para string)
+    def rolling_mode_fast(s):
+        result = []
+        counts = {}
+        for val in s.shift().fillna(''):  # shift para não usar a linha atual
+            if val != '':
+                counts[val] = counts.get(val, 0) + 1
+            if counts:
+                mode_val = max(counts, key=counts.get)
+                result.append(mode_val)
+            else:
+                result.append(np.nan)
+        return pd.Series(result, index=s.index)
+    detalhado['trecho_mais_frequente'] = detalhado.groupby('fk_contact')['trecho'].transform(rolling_mode_fast)
+    detalhado['trecho_mais_frequente'] = detalhado['trecho_mais_frequente'].fillna(detalhado['trecho'])
+
+    # Empresa mais frequente do cliente até o momento (rolling mode, sem expanding para string)
+    def rolling_mode_empresa_fast(s):
+        result = []
+        counts = {}
+        for val in s.shift().fillna(''):
+            if val != '':
+                counts[val] = counts.get(val, 0) + 1
+            if counts:
+                mode_val = max(counts, key=counts.get)
+                result.append(mode_val)
+            else:
+                result.append(np.nan)
+        return pd.Series(result, index=s.index)
+    detalhado['empresa_mais_frequente'] = detalhado.groupby('fk_contact')['fk_departure_ota_bus_company'].transform(rolling_mode_empresa_fast)
+    detalhado['empresa_mais_frequente'] = detalhado['empresa_mais_frequente'].fillna(detalhado['fk_departure_ota_bus_company'])
+
+    # Último trecho realizado (shift)
+    detalhado['ultimo_trecho'] = detalhado.groupby('fk_contact')['trecho'].shift(1).fillna(detalhado['trecho'])
 
     # Cardinalidade acumulada vetorizada e eficiente
     def acumulada_nunique(grupo):
@@ -81,11 +125,20 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     # Remove 'outros' do treino/teste se quiser só as classes mais frequentes:
     df = df[df['target_trecho_agrupado'] != 'outros']
 
-    # 10. Features e target
+    # 10. Features e target (incluindo novas features)
     feature_cols = [
         'recencia', 'frequencia', 'monetario', 'ticket_medio',
-        'destinos_unicos', 'empresas_diferentes', 'meses_distintos', 'dias_semana_distintos'
+        'destinos_unicos', 'empresas_diferentes', 'meses_distintos', 'dias_semana_distintos',
+        'mes_atual', 'dia_semana_atual', 'intervalo_medio', 'tempo_desde_primeira',
+        'trecho_mais_frequente', 'empresa_mais_frequente', 'ultimo_trecho'
     ]
+    # Adiciona cluster se existir
+    if 'cluster' in df.columns:
+        feature_cols.append('cluster')
+    # Codificar features categóricas
+    for col in ['trecho_mais_frequente', 'empresa_mais_frequente', 'ultimo_trecho', 'cluster']:
+        if col in df.columns:
+            df[col] = df[col].astype('category').cat.codes
     X = df[feature_cols]
     y = df['target_trecho_agrupado']
     idx = df.index.values

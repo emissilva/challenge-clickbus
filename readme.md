@@ -73,19 +73,37 @@ challenge-clickbus/
    - `previsao_simples.csv`: previsão de recompra e dias até próxima compra por cliente.
 
 
+
 ### 3.3. `desafio_3.py` — Previsão do Próximo Trecho (Origem-Destino)
 - **Entradas:**
-   - `df_tratado.csv` (métricas agregadas)
-   - `detalhado_tratado.csv` (para calcular o trecho mais frequente)
+   - `df_tratado.csv` (métricas agregadas, incluindo cluster do cliente)
+   - `detalhado_tratado.csv` (para cálculo de features históricas e contextuais)
+
 - **Processos:**
-   - Para cada cliente, identifica o trecho (origem-destino) mais frequente no histórico.
-   - Remoção de classes raras (trechos pouco frequentes, agrupados como 'outros').
-   - Usa apenas métricas agregadas para prever o próximo trecho provável (classificação multi-classe, LogisticRegression balanceada).
-   - Baseline: sempre prever o trecho mais comum do dataset.
-   - Função para prever para cliente específico.
+   - Para cada cliente, constrói um dataset temporal com uma linha por compra, contendo features históricas, contextuais e comportamentais.
+   - **Features utilizadas:**
+     - recencia, frequencia, monetario, ticket_medio, destinos_unicos, empresas_diferentes, meses_distintos, dias_semana_distintos
+     - mês da compra atual, dia da semana da compra atual
+     - intervalo médio entre compras, tempo desde a primeira compra
+     - trecho mais frequente do cliente até o momento, empresa mais frequente até o momento, último trecho realizado
+     - cluster do cliente (obtido do arquivo agregado)
+   - **Agrupamento de classes:**
+     - Apenas os N (ex: 20) trechos mais frequentes são mantidos como classes. Os demais são agrupados como "outros" e excluídos do treinamento/teste.
+   - **Modelagem:**
+     - O modelo principal é uma `LogisticRegression` multinomial balanceada, robusta para múltiplas classes e dados tabulares.
+     - As features categóricas são codificadas automaticamente.
+     - O baseline consiste em prever sempre o trecho mais comum do dataset.
+   - **Treinamento:**
+     - O dataset é dividido em treino e teste (80/20, estratificado).
+     - O modelo é treinado apenas nas classes mais frequentes.
+     - Métricas de classificação (accuracy, f1-score, precision, recall) são salvas para o conjunto geral e por cluster de cliente.
+     - O script também realiza uma regressão para prever o número de dias até a próxima compra (XGBoostRegressor).
+   - **Função para previsão individual:**
+     - Permite prever o próximo trecho provável para um cliente específico, usando o histórico mais recente.
+
 - **Outputs:**
-   - `saida_completa.log`: log completo dos resultados e métricas.
-   - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste.
+   - `saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
+   - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
 
 ---
 
