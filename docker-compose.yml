@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  pipeline:
+    build: .
+    container_name: pipeline-clickbus
+    mem_limit: 8g
+    volumes:
+      - ./dados:/app/dados
+      - ./scripts:/app/scripts
+    command: sh -c "python scripts/desafio_1.py && python scripts/desafio_2.py && python scripts/desafio_3.py"

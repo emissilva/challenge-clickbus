@@ -1,0 +1,5 @@
+# Ignorar todos os arquivos CSV em qualquer pasta
+dados/**/*.csv
+*.csv
+# Ignorar arquivos de log
+dados/resultados/desafio_3/*.log
