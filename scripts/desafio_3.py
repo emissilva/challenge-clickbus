@@ -4,6 +4,7 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, mean_squared_error
+from math import sqrt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from xgboost import XGBClassifier, XGBRegressor
 from contextlib import redirect_stdout
@@ -14,8 +15,10 @@ os.makedirs('dados/resultados/desafio_3', exist_ok=True)
 
 
 with open(log_path, 'w') as f, redirect_stdout(f):
-    # 1. Leitura e tratamento dos dados detalhados (garantir 365 dias, anonimização, etc)
+    # 1. Leitura e tratamento dos dados detalhados (amostragem para evitar travamento)
     detalhado = pd.read_csv('dados/resultados/desafio_1/detalhado_tratado.csv')
+    if len(detalhado) > 50000:
+        detalhado = detalhado.sample(n=50000, random_state=42)
     detalhado['purchase_datetime'] = pd.to_datetime(detalhado['purchase_datetime'])
     data_max = detalhado['purchase_datetime'].max()
     data_min = data_max - pd.Timedelta(days=365)
@@ -70,10 +73,13 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     # 8. Montar DataFrame final (remover última compra de cada cliente, pois não tem target)
     df = detalhado.dropna(subset=['target_trecho']).copy()
 
-    # 9. Remover trechos pouco frequentes
+    # 9. Agrupar classes raras e limitar para as N mais frequentes
+    N_TOP = 20  # top N trechos mais frequentes
     counts = df['target_trecho'].value_counts()
-    classes_validas = counts[counts > 1].index
-    df = df[df['target_trecho'].isin(classes_validas)]
+    top_classes = counts.nlargest(N_TOP).index
+    df['target_trecho_agrupado'] = np.where(df['target_trecho'].isin(top_classes), df['target_trecho'], 'outros')
+    # Remove 'outros' do treino/teste se quiser só as classes mais frequentes:
+    df = df[df['target_trecho_agrupado'] != 'outros']
 
     # 10. Features e target
     feature_cols = [
@@ -81,7 +87,8 @@ with open(log_path, 'w') as f, redirect_stdout(f):
         'destinos_unicos', 'empresas_diferentes', 'meses_distintos', 'dias_semana_distintos'
     ]
     X = df[feature_cols]
-    y = df['target_trecho']
+    y = df['target_trecho_agrupado']
+    idx = df.index.values
 
     # 11. Codificar target
     le_target = LabelEncoder()
@@ -91,8 +98,10 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # 13. Split
-    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_enc, test_size=0.2, random_state=42, stratify=y_enc)
+    # 13. Split (incluindo índice)
+    X_train, X_test, y_train, y_test, idx_train, idx_test = train_test_split(
+        X_scaled, y_enc, idx, test_size=0.2, random_state=42, stratify=y_enc
+    )
 
     # 14. Baseline: prever trecho mais comum do dataset
     trecho_mais_comum = df['target_trecho'].mode()[0]
@@ -105,19 +114,22 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     ))
     print(f"Acurácia: {accuracy_score(le_target.inverse_transform(y_test), le_target.inverse_transform(y_pred_baseline)):.2f}")
 
-    # 15. Modelo de classificação multi-classe (XGBoost)
-    clf = XGBClassifier(
-        objective='multi:softmax',
-        num_class=len(le_target.classes_),
-        eval_metric='mlogloss',
-        random_state=42,
-        n_jobs=-1,
-        n_estimators=10,
-        max_depth=2
-    )
+    # 15. Modelo de classificação multi-classe (XGBoost ou LogisticRegression)
+    # Troque para LogisticRegression se quiser testar modelo mais simples
+    from sklearn.linear_model import LogisticRegression
+    # clf = XGBClassifier(
+    #     objective='multi:softmax',
+    #     num_class=len(le_target.classes_),
+    #     eval_metric='mlogloss',
+    #     random_state=42,
+    #     n_jobs=-1,
+    #     n_estimators=10,
+    #     max_depth=2
+    # )
+    clf = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=200, class_weight='balanced', random_state=42)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
-    print("\n--- Classificação: Previsão do próximo trecho (XGBoostClassifier) ---")
+    print("\n--- Classificação: Previsão do próximo trecho (LogisticRegression) ---")
     print(classification_report(
         le_target.inverse_transform(y_test),
         le_target.inverse_transform(y_pred),
@@ -127,18 +139,31 @@ with open(log_path, 'w') as f, redirect_stdout(f):
 
     # 16. Salvar real vs previsto
     resultados = pd.DataFrame({
-        'fk_contact': df.iloc[y_test.index]['fk_contact'].values,
+        'fk_contact': df.loc[idx_test, 'fk_contact'].values,
         'trecho_real': le_target.inverse_transform(y_test),
-        'trecho_previsto': le_target.inverse_transform(y_pred)
+        'trecho_previsto': le_target.inverse_transform(y_pred),
+        'cluster': df.loc[idx_test, 'cluster'].values if 'cluster' in df.columns else None
     })
     resultados.to_csv(output_csv, index=False)
     print(f"Resultados de classificação salvos em {output_csv}")
 
+    # 16.1. Salvar métricas por cluster (se disponível)
+    if 'cluster' in df.columns:
+        print("\n--- Métricas por cluster ---")
+        for cl in resultados['cluster'].unique():
+            mask = resultados['cluster'] == cl
+            print(f"\nCluster: {cl}")
+            print(classification_report(
+                resultados.loc[mask, 'trecho_real'],
+                resultados.loc[mask, 'trecho_previsto'],
+                zero_division=0
+            ))
+
     # 17. Regressão para dias até próxima compra (XGBoost)
     reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, n_estimators=10, max_depth=2)
-    reg.fit(X_train, df.iloc[y_train.index]['dias_ate_proxima'])
+    reg.fit(X_train, df.loc[idx_train, 'dias_ate_proxima'])
     y_pred_reg = reg.predict(X_test)
-    rmse = mean_squared_error(df.iloc[y_test.index]['dias_ate_proxima'], y_pred_reg, squared=False)
+    rmse = sqrt(mean_squared_error(df.loc[idx_test, 'dias_ate_proxima'], y_pred_reg))
     print(f"\n--- Regressão: Dias até próxima compra (XGBoostRegressor) ---")
     print(f"RMSE: {rmse:.2f}")
 
