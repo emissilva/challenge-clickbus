@@ -37,7 +37,6 @@ challenge-clickbus/
 │   ├── desafio_2.py
 │   ├── desafio_3.py
 │   └── analises/
-│       ├── analise.ipynb
 │       └── avaliação dos clusters.py
 ├── requirements.txt
 ├── Dockerfile
@@ -93,6 +92,37 @@ challenge-clickbus/
 ## 4. Como Executar
 
 ### 4.1. Execução Manual
+
+> **Atenção:** Para executar o pipeline, é necessário inserir o arquivo de dados brutos no diretório `dados/raw/`.
+
+
+#### Estrutura esperada dos dados brutos
+O arquivo esperado é `df_t.csv` dentro de `dados/raw/`.
+
+> **Importante:** O pipeline utiliza todas as colunas abaixo, que devem obrigatoriamente estar presentes no arquivo. Não remova colunas do arquivo original, pois elas são essenciais para o tratamento, enriquecimento, anonimização e análises.
+
+**Colunas obrigatórias e explicação:**
+
+- `nk_ota_localizer_id`: identificador único da compra (localizador)
+- `fk_contact`: identificador do cliente
+- `date_purchase`: data da compra (formato YYYY-MM-DD)
+- `time_purchase`: hora da compra (formato HH:MM:SS)
+- `place_origin_departure`: rodoviária de origem da ida
+- `place_destination_departure`: rodoviária de destino da ida
+- `place_origin_return`: rodoviária de origem da volta (se houver)
+- `place_destination_return`: rodoviária de destino da volta (se houver)
+- `fk_departure_ota_bus_company`: empresa de ônibus da ida
+- `fk_return_ota_bus_company`: empresa de ônibus da volta (se houver)
+- `gmv_success`: valor total da compra (Gross Merchandise Value)
+- `total_tickets_quantity_success`: quantidade total de passagens compradas
+
+Essas colunas são utilizadas para:
+- Identificação e anonimização de clientes e compras
+- Cálculo de datas, valores, métricas e features comportamentais
+- Análise de origem/destino, empresas e fluxos de viagem
+- Tratamento de ida e volta separadamente
+
+Se possível, mantenha o arquivo bruto completo para garantir máxima flexibilidade e reprodutibilidade do pipeline.
 
 1. Clone o repositório:
     ```bash
