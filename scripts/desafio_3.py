@@ -29,33 +29,51 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     data_min = data_max - pd.Timedelta(days=365)
     detalhado = detalhado[(detalhado['purchase_datetime'] > data_min) & (detalhado['purchase_datetime'] <= data_max)]
 
-    # 2. Anonimização já foi feita no detalhado_tratado.csv
     # 3. Criar coluna de trecho
     detalhado['trecho'] = detalhado['place_origin_departure'].astype(str) + ' - ' + detalhado['place_destination_departure'].astype(str)
 
-    # 4. Construir dataset temporal: para cada cliente, cada linha = contexto até uma compra, target = próximo trecho
-    linhas = []
-    for cliente, hist in detalhado.sort_values('purchase_datetime').groupby('fk_contact'):
-        hist = hist.reset_index(drop=True)
-        for i in range(len(hist)-1):
-            linha = {
-                'fk_contact': cliente,
-                'trecho_atual': hist.loc[i, 'trecho'],
-                'recencia': (hist.loc[i+1, 'purchase_datetime'] - hist.loc[i, 'purchase_datetime']).days,
-                'frequencia': i+1,
-                'monetario': hist.loc[:i, 'valor_trecho'].sum(),
-                'ticket_medio': hist.loc[:i, 'valor_trecho'].mean() if i > 0 else hist.loc[i, 'valor_trecho'],
-                'destinos_unicos': hist.loc[:i, 'place_destination_departure'].nunique(),
-                'empresas_diferentes': hist.loc[:i, 'fk_departure_ota_bus_company'].nunique(),
-                'meses_distintos': hist.loc[:i, 'purchase_datetime'].dt.month.nunique(),
-                'dias_semana_distintos': hist.loc[:i, 'purchase_datetime'].dt.weekday.nunique(),
-                'target_trecho': hist.loc[i+1, 'trecho'],
-                'dias_ate_proxima': (hist.loc[i+1, 'purchase_datetime'] - hist.loc[i, 'purchase_datetime']).days
-            }
-            linhas.append(linha)
-    df = pd.DataFrame(linhas)
+    # 4. Construção vetorizada do dataset temporal (pandas)
+    detalhado = detalhado.sort_values(['fk_contact', 'purchase_datetime'])
+    detalhado['target_trecho'] = detalhado.groupby('fk_contact')['trecho'].shift(-1)
+    detalhado['purchase_datetime_next'] = detalhado.groupby('fk_contact')['purchase_datetime'].shift(-1)
+    detalhado['dias_ate_proxima'] = (detalhado['purchase_datetime_next'] - detalhado['purchase_datetime']).dt.days
 
-    # 5. Remover classes raras (trechos pouco frequentes)
+    # Features históricas acumuladas (sem vazamento)
+    detalhado['frequencia'] = detalhado.groupby('fk_contact').cumcount() + 1
+    detalhado['monetario'] = detalhado.groupby('fk_contact')['valor_trecho'].cumsum() - detalhado['valor_trecho']
+    detalhado['ticket_medio'] = (
+        detalhado.groupby('fk_contact')['valor_trecho']
+        .expanding().mean().shift().reset_index(level=0, drop=True)
+    )
+    detalhado['ticket_medio'] = detalhado['ticket_medio'].fillna(detalhado['valor_trecho'])
+    detalhado['destinos_unicos'] = (
+        detalhado.groupby('fk_contact')['place_destination_departure']
+        .expanding().apply(lambda x: x.nunique()).shift().reset_index(level=0, drop=True)
+    )
+    detalhado['destinos_unicos'] = detalhado['destinos_unicos'].fillna(1)
+    detalhado['empresas_diferentes'] = (
+        detalhado.groupby('fk_contact')['fk_departure_ota_bus_company']
+        .expanding().apply(lambda x: x.nunique()).shift().reset_index(level=0, drop=True)
+    )
+    detalhado['empresas_diferentes'] = detalhado['empresas_diferentes'].fillna(1)
+    detalhado['meses_distintos'] = (
+        detalhado.groupby('fk_contact')['purchase_datetime']
+        .expanding().apply(lambda x: x.dt.month.nunique()).shift().reset_index(level=0, drop=True)
+    )
+    detalhado['meses_distintos'] = detalhado['meses_distintos'].fillna(1)
+    detalhado['dias_semana_distintos'] = (
+        detalhado.groupby('fk_contact')['purchase_datetime']
+        .expanding().apply(lambda x: x.dt.weekday.nunique()).shift().reset_index(level=0, drop=True)
+    )
+    detalhado['dias_semana_distintos'] = detalhado['dias_semana_distintos'].fillna(1)
+
+    # recencia: diferença para próxima compra
+    detalhado['recencia'] = detalhado['dias_ate_proxima']
+
+    # Montar DataFrame final (remover última compra de cada cliente, pois não tem target)
+    df = detalhado.dropna(subset=['target_trecho']).copy()
+
+    # 5. Remover trechos pouco frequentes
     counts = df['target_trecho'].value_counts()
     classes_validas = counts[counts > 1].index
     df = df[df['target_trecho'].isin(classes_validas)]
@@ -98,7 +116,9 @@ with open(log_path, 'w') as f, redirect_stdout(f):
         eval_metric='mlogloss',
         use_label_encoder=False,
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1,
+        n_estimators=50,   # ajuste para acelerar
+        max_depth=4        # ajuste para acelerar
     )
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
@@ -120,8 +140,8 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     print(f"Resultados de classificação salvos em {output_csv}")
 
 
-    # 13. (Opcional) Regressão para dias até próxima compra (XGBoost)
-    reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1)
+    # 13. Regressão para dias até próxima compra (XGBoost)
+    reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, n_estimators=50, max_depth=4)
     reg.fit(X_train, df.iloc[y_train.index]['dias_ate_proxima'])
     y_pred_reg = reg.predict(X_test)
     rmse = mean_squared_error(df.iloc[y_test.index]['dias_ate_proxima'], y_pred_reg, squared=False)
