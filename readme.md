@@ -1,3 +1,4 @@
+
 # Pipeline de Análise e Previsão de Clientes
 
 ## 1. Visão Geral do Projeto
@@ -8,66 +9,29 @@ O objetivo é:
 * Tratar e limpar dados brutos.
 * Segmentar clientes em grupos distintos (clusters) com base em seu histórico de compras.
 * Construir modelos de Machine Learning para prever a próxima compra de um cliente.
+* Gerar outputs intermediários e finais para análise exploratória e validação dos modelos.
 
+---
 
 ## 2. Fluxo de Trabalho (Pipeline)
 
 
-# Pipeline ClickBus: Tratamento, Clusterização e Previsão de Compras
 
-## Visão Geral
-
-Este projeto implementa um pipeline de dados para análise e previsão do comportamento de clientes de passagens rodoviárias. O fluxo é totalmente automatizado em Python, com scripts para tratamento, clusterização, previsão e análise visual.
-
-### Objetivos
-- Tratar e anonimizar dados brutos de compras.
-- Gerar features comportamentais e agregadas por cliente.
-- Segmentar clientes via clusterização.
-- Prever o próximo trecho (origem-destino) provável de cada cliente.
-- Gerar outputs e gráficos para análise exploratória e validação dos modelos.
-
----
-
-## Pipeline e Scripts
-
-O pipeline é composto por etapas independentes, cada uma com seu script e outputs:
-
-### 1. Tratamento de Dados (`scripts/desafio_1.py`)
-- Lê o arquivo bruto `dados/raw/df_t.csv`.
-- Filtra apenas os últimos 365 dias.
-- Limpa, padroniza, anonimiza rodoviárias, empresas e clientes.
-- Calcula features agregadas por cliente (recência, frequência, monetário, ticket médio, destinos únicos, etc).
-- Salva o resultado em `dados/resultados/desafio_1/df_tratado.csv`.
-
-### 2. Clusterização e Regras Simples (`scripts/desafio_2.py`)
-- Lê o arquivo tratado `dados/resultados/desafio_1/df_tratado.csv`.
-- Calcula previsões simples de recompra (regras de recência/frequência).
-- Salva resultados em `dados/resultados/desafio_2/previsao_simples.csv`.
-
-### 3. Previsão do Próximo Trecho (`scripts/desafio_3.py`)
-- Lê o histórico detalhado (`dados/raw/df_t.csv`), filtra 365 dias, anonimiza e gera features.
-- Para cada cliente, monta exemplos de previsão do próximo par origem-destino (classificação multi-classe).
-- Treina modelo XGBoost multi-classe e, opcionalmente, regressão para dias até próxima compra.
-- Salva as previsões de classificação (real x previsto) em `dados/resultados/desafio_3/resultados_classificacao.csv`.
-
-### 4. Análises e Visualização (`scripts/analises/`)
-- `analise.ipynb`: Notebook para análise exploratória, PCA, escolha de clusters, validação visual.
-- `avaliação dos clusters.py`: Gera gráficos automáticos (distribuição, boxplots, pairplot) para análise dos clusters.
-
----
-
-## Estrutura do Projeto
+### 2.1. Estrutura do Projeto
 
 ```
 challenge-clickbus/
-├── .github/workflows/pipeline.yml
 ├── dados/
 │   ├── raw/df_t.csv
 │   └── resultados/
-│       ├── desafio_1/df_tratado.csv
-│       ├── desafio_2/previsao_simples.csv
-│       ├── desafio_3/resultados_classificacao.csv
-│       └── ...
+│       ├── desafio_1/
+│       │   ├── detalhado_tratado.csv
+│       │   └── df_tratado.csv
+│       ├── desafio_2/
+│       │   └── previsao_simples.csv
+│       ├── desafio_3/
+│       │   ├── saida_completa.log
+│       │   └── resultados_classificacao.csv
 ├── scripts/
 │   ├── desafio_1.py
 │   ├── desafio_2.py
@@ -84,30 +48,103 @@ challenge-clickbus/
 
 ---
 
-## Como Executar
+## 3. Scripts do Pipeline
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/emissilva/challenge-clickbus
-   cd challenge-clickbus
-   ```
-2. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Execute os scripts na ordem desejada (exemplo):
-   ```bash
-   python scripts/desafio_1.py
-   python scripts/desafio_2.py
-   python scripts/desafio_3.py
-   ```
-4. Analise os resultados em `dados/resultados/` e os gráficos/notebooks em `scripts/analises/`.
+
+### 3.1. `desafio_1.py` — Tratamento, Anonimização, Agregação e Clusterização
+- **Entrada:** `dados/raw/df_t.csv`
+- **Processos:**
+   - Limpeza, filtragem dos últimos 365 dias, padronização e anonimização de rodoviárias, empresas e clientes.
+   - Geração de dois outputs principais:
+      - `detalhado_tratado.csv`: dataset detalhado, com todas as compras tratadas, datas e anonimização.
+      - `df_tratado.csv`: dataset agregado por cliente, com métricas comportamentais e cluster.
+   - Clusterização dos clientes (KMeans) e identificação de outliers via IQR.
+   - Nomeação dos clusters: `cluster_1`, `cluster_2`, ..., `outliers`.
+
+
+### 3.2. `desafio_2.py` — Previsão Simples de Recompra
+- **Entrada:** `detalhado_tratado.csv`
+- **Processos:**
+   - Cálculo de recência, frequência e monetário por cliente.
+   - Aplicação de regras simples:
+      - Previsão de recompra em 7 dias: recência ≤ 3 dias ou frequência ≥ 2 compras.
+      - Previsão de recompra em 30 dias: recência ≤ 15 dias ou frequência ≥ 2 compras.
+   - Estimativa do tempo até a próxima compra (regressão simples baseada em datas).
+- **Output:**
+   - `previsao_simples.csv`: previsão de recompra e dias até próxima compra por cliente.
+
+
+### 3.3. `desafio_3.py` — Previsão do Próximo Trecho (Origem-Destino)
+- **Entradas:**
+   - `df_tratado.csv` (métricas agregadas)
+   - `detalhado_tratado.csv` (para calcular o trecho mais frequente)
+- **Processos:**
+   - Para cada cliente, identifica o trecho (origem-destino) mais frequente no histórico.
+   - Remoção de classes raras (trechos pouco frequentes, agrupados como 'outros').
+   - Usa apenas métricas agregadas para prever o próximo trecho provável (classificação multi-classe, LogisticRegression balanceada).
+   - Baseline: sempre prever o trecho mais comum do dataset.
+   - Função para prever para cliente específico.
+- **Outputs:**
+   - `saida_completa.log`: log completo dos resultados e métricas.
+   - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste.
 
 ---
 
-## Observações
+## 4. Como Executar
+
+### 4.1. Execução Manual
+
+1. Clone o repositório:
+    ```bash
+    git clone https://github.com/emissilva/challenge-clickbus
+    cd challenge-clickbus
+    ```
+2. Instale as dependências:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3. Execute os scripts na ordem desejada (exemplo):
+    ```bash
+    python scripts/desafio_1.py
+    python scripts/desafio_2.py
+    python scripts/desafio_3.py
+    ```
+4. Analise os resultados em `dados/resultados/` e os gráficos em `scripts/analises/`.
+
+### 4.2. Como rodar com container (Docker ou Podman)
+
+Você pode executar todo o pipeline em um container, sem precisar instalar dependências Python localmente.
+
+#### Usando Docker Compose
+
+1. Certifique-se de ter o Docker e o Docker Compose instalados.
+2. Na raiz do projeto, execute:
+
+```sh
+docker-compose up --build
+```
+
+#### Usando Podman Compose
+
+1. Certifique-se de ter o Podman e o podman-compose instalados.
+2. Na raiz do projeto, execute:
+
+```sh
+podman-compose up --build
+```
+
+O pipeline será executado automaticamente conforme definido no arquivo `docker-compose.yml`.
+
+Os resultados e arquivos gerados ficarão disponíveis na pasta `dados/resultados/`.
+
+---
+
+## 5. Observações Técnicas
 - Todos os scripts consideram apenas os últimos 365 dias de dados.
 - Os dados e outputs intermediários ficam em `dados/resultados/`.
 - O pipeline pode ser adaptado para rodar cada etapa individualmente.
 - Os scripts de análise visual são opcionais, mas recomendados para validação dos clusters e previsões.
+- O projeto está preparado para execução local ou em container, facilitando a reprodutibilidade.
+
+---
 
