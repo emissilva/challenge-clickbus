@@ -22,7 +22,8 @@ O objetivo é:
 ```
 challenge-clickbus/
 ├── dados/
-│   ├── raw/df_t.csv
+│   ├── raw/
+│   │   └── df_t.csv
 │   └── resultados/
 │       ├── desafio_1/
 │       │   ├── detalhado_tratado.csv
@@ -32,17 +33,25 @@ challenge-clickbus/
 │       ├── desafio_3/
 │       │   ├── saida_completa.log
 │       │   └── resultados_classificacao.csv
+│       └── analises/
+│           ├── boxplot_destinos_unicos_por_cluster.png
+│           ├── boxplot_frequencia_por_cluster.png
+│           ├── boxplot_monetario_por_cluster.png
+│           ├── boxplot_recencia_por_cluster.png
+│           ├── boxplot_ticket_medio_por_cluster.png
+│           ├── grafico_clientes_por_cluster.png
+│           └── pairplot_clusters.png
 ├── scripts/
 │   ├── desafio_1.py
 │   ├── desafio_2.py
 │   ├── desafio_3.py
 │   └── analises/
-│       └── avaliação dos clusters.py
+│       └── avaliacao_clusters.py
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
 ├── readme.md
-└── resumo.md
+└── overview.md
 ```
 
 ---
@@ -58,7 +67,7 @@ challenge-clickbus/
       - `detalhado_tratado.csv`: dataset detalhado, com todas as compras tratadas, datas e anonimização.
       - `df_tratado.csv`: dataset agregado por cliente, com métricas comportamentais e cluster.
    - Clusterização dos clientes (KMeans) e identificação de outliers via IQR.
-   - Nomeação dos clusters: `cluster_1`, `cluster_2`, ..., `outliers`.
+   - Nomeação dinâmica dos clusters: os nomes são sugeridos automaticamente com base na análise estatística das principais features (frequência, ticket médio, recência, etc.), podendo variar conforme o perfil dos dados. Exemplos de nomes: "Clientes muito frequentes", "Clientes de ticket alto e baixa frequência", "Clientes de baixo valor". O cluster 'outliers' é mantido para clientes fora do padrão.
 
 
 ### 3.2. `desafio_2.py` — Previsão Simples de Recompra
@@ -86,24 +95,25 @@ challenge-clickbus/
      - mês da compra atual, dia da semana da compra atual
      - intervalo médio entre compras, tempo desde a primeira compra
      - trecho mais frequente do cliente até o momento, empresa mais frequente até o momento, último trecho realizado
-     - cluster do cliente (obtido do arquivo agregado)
+   - cluster do cliente (obtido do arquivo agregado e nomeado conforme análise estatística)
    - **Agrupamento de classes:**
      - Apenas os N (ex: 20) trechos mais frequentes são mantidos como classes. Os demais são agrupados como "outros" e excluídos do treinamento/teste.
    - **Modelagem:**
      - O modelo principal é uma `LogisticRegression` multinomial balanceada, robusta para múltiplas classes e dados tabulares.
      - As features categóricas são codificadas automaticamente.
-     - O baseline consiste em prever sempre o trecho mais comum do dataset.
+   - O baseline foi removido para focar apenas no modelo supervisionado.
    - **Treinamento:**
      - O dataset é dividido em treino e teste (80/20, estratificado).
      - O modelo é treinado apenas nas classes mais frequentes.
      - Métricas de classificação (accuracy, f1-score, precision, recall) são salvas para o conjunto geral e por cluster de cliente.
-     - O script também realiza uma regressão para prever o número de dias até a próxima compra (XGBoostRegressor).
-   - **Função para previsão individual:**
-     - Permite prever o próximo trecho provável para um cliente específico, usando o histórico mais recente.
+       - O script também realiza uma regressão para prever o número de dias até a próxima compra (XGBoostRegressor).
+    - **Função para previsão individual e top clientes:**
+       - Permite prever o próximo trecho provável e o tempo até a próxima compra para qualquer cliente, inclusive automaticamente para os 10 clientes que mais compram.
 
 - **Outputs:**
-   - `saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
-   - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
+    - `saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
+    - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
+    - Gráficos e análises visuais salvos em `dados/resultados/analises/`.
 
 ---
 
@@ -151,13 +161,16 @@ Se possível, mantenha o arquivo bruto completo para garantir máxima flexibilid
     ```bash
     pip install -r requirements.txt
     ```
-3. Execute os scripts na ordem desejada (exemplo):
-    ```bash
-    python scripts/desafio_1.py
-    python scripts/desafio_2.py
-    python scripts/desafio_3.py
-    ```
-4. Analise os resultados em `dados/resultados/` e os gráficos em `scripts/analises/`.
+3. Execute os scripts na ordem abaixo (obrigatório):
+   > **Importante:** Os scripts de desafio 2 e 3 dependem dos dados gerados pelo desafio 1.
+   ```bash
+   python scripts/desafio_1.py
+   python scripts/desafio_2.py
+   python scripts/desafio_3.py
+   ```
+4. Analise os resultados em `dados/resultados/`.
+
+> **Dica:** Para validação visual dos clusters e das previsões, recomenda-se executar também o script `scripts/analises/avaliacao_clusters.py`, que gera gráficos em `dados/resultados/analises/`. Esta etapa é opcional, mas altamente recomendada para análise exploratória e apresentação dos resultados.
 
 ### 4.2. Como rodar com container (Docker ou Podman)
 
@@ -187,12 +200,17 @@ Os resultados e arquivos gerados ficarão disponíveis na pasta `dados/resultado
 
 ---
 
-## 5. Observações Técnicas
+
+
+## 6. Privacidade e Dados Sensíveis
+
+Todos os dados de clientes, rodoviárias e empresas são anonimizados durante o processamento. Nenhum dado sensível ou identificador real é mantido nos outputs finais, garantindo a privacidade dos clientes e a conformidade com boas práticas de proteção de dados.
 - Todos os scripts consideram apenas os últimos 365 dias de dados.
 - Os dados e outputs intermediários ficam em `dados/resultados/`.
 - O pipeline pode ser adaptado para rodar cada etapa individualmente.
-- Os scripts de análise visual são opcionais, mas recomendados para validação dos clusters e previsões.
+- Os scripts de análise visual são opcionais, mas recomendados para validação dos clusters e previsões. Os gráficos gerados ficam em `dados/resultados/analises/`.
 - O projeto está preparado para execução local ou em container, facilitando a reprodutibilidade.
+- As mensagens de log dos scripts seguem um padrão para facilitar o acompanhamento da execução e debugging, especialmente em ambientes de produção ou CI.
 
 ---
 

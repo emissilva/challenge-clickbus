@@ -1,8 +1,32 @@
+---
+
+
+## Análise dos Clusters e Gráficos Gerados
+
+O script `scripts/analises/avaliacao_clusters.py` realiza uma análise detalhada dos clusters de clientes, gerando estatísticas e gráficos salvos em `dados/resultados/analises/`.
+
+### Resumo estatístico (mediana) das principais features por cluster:
+
+O script imprime no terminal a mediana das principais features (recência, frequência, monetário, ticket médio, destinos únicos) para cada cluster, além de sugerir nomes automáticos para facilitar a comunicação com áreas de negócio.
+
+### Gráficos gerados (em `dados/resultados/analises/`):
+
+- `grafico_clientes_por_cluster.png`: Distribuição de clientes por cluster.
+- `boxplot_recencia_por_cluster.png`: Boxplot da recência por cluster.
+- `boxplot_frequencia_por_cluster.png`: Boxplot da frequência por cluster.
+- `boxplot_monetario_por_cluster.png`: Boxplot do valor monetário por cluster.
+- `boxplot_ticket_medio_por_cluster.png`: Boxplot do ticket médio por cluster.
+- `boxplot_destinos_unicos_por_cluster.png`: Boxplot do número de destinos únicos por cluster.
+- `pairplot_clusters.png`: Matriz de dispersão das principais features por cluster (sem outliers).
+
+Esses gráficos permitem validar visualmente a segmentação dos clientes, identificar perfis de comportamento e analisar a separação entre os grupos. Todos os arquivos são salvos automaticamente pelo script.
+
+---
 
 
 
 
-# Overview do Pipeline ClickBus (Atualizado)
+# Overview do Pipeline ClickBus
 
 Este documento detalha o funcionamento dos principais scripts do pipeline de análise e previsão de clientes, alinhado à estrutura real do projeto e aos outputs gerados nas pastas `dados/resultados/desafio_1/`, `desafio_2/` e `desafio_3/`.
 
@@ -28,7 +52,7 @@ Preparar, enriquecer e anonimizar os dados brutos de compras, gerar dois dataset
 	- `dados/resultados/desafio_1/detalhado_tratado.csv`: todas as compras tratadas, com datas e anonimização.
 	- `dados/resultados/desafio_1/df_tratado.csv`: dataset agregado por cliente, com métricas e cluster.
 5. Clusterização dos clientes via KMeans (4 clusters principais, parametrizável), com atribuição de um cluster especial ('outliers') para clientes fora do padrão (detecção via IQR).
-6. Nomeação dos clusters: `cluster_1`, `cluster_2`, ..., `outliers`.
+6. Nomeação dinâmica dos clusters: os nomes são sugeridos automaticamente com base na análise estatística das features (frequência, ticket médio, recência), resultando em perfis como "Clientes muito frequentes", "Clientes de ticket alto e baixa frequência", "Clientes de baixo valor", etc. O cluster 'outliers' é mantido para clientes fora do padrão.
 
 ---
 
@@ -106,12 +130,14 @@ Prever, para cada cliente, qual o próximo par origem-destino (trecho) mais prov
 
 
 
+
 ## Modelos e Estratégias Utilizados
 
 ### Clusterização (KMeans)
 - **Problema:** Agrupar clientes com comportamentos similares.
 - **Modelo:** KMeans, que agrupa clientes em clusters baseando-se na similaridade das features agregadas.
 - **Uso:** Segmentação de clientes para estratégias de marketing, personalização, etc. Outliers recebem o cluster 'outliers'.
+- **Nomeação dos clusters:** Os nomes são sugeridos automaticamente com base na análise estatística das principais features, facilitando a comunicação com áreas de negócio.
 
 ### Regras Heurísticas de Recompra
 - **Problema:** Prever recompra em janelas de 7 e 30 dias.
@@ -135,6 +161,6 @@ Prever, para cada cliente, qual o próximo par origem-destino (trecho) mais prov
 1. **scripts/desafio_1.py:** Limpa, transforma, enriquece, anonimiza, remove outliers (para clusterização) e segmenta clientes em clusters nomeados (incluindo 'outliers'), gerando dois outputs principais: dataset detalhado (`detalhado_tratado.csv`) e dataset agregado/clusterizado (`df_tratado.csv`).
 2. **scripts/desafio_2.py:** Aplica regras simples de recompra (recência/frequência) e salva previsões simples em `previsao_simples.csv`.
 3. **scripts/desafio_3.py:** Calcula o trecho mais frequente por cliente, treina modelo de classificação multi-classe (LogisticRegression), salva logs e previsões detalhadas (real x previsto).
-4. **scripts/analises/analise.ipynb** e **scripts/analises/avaliação dos clusters.py:** Permitem análise exploratória, validação dos clusters e visualização dos resultados.
+4. **scripts/analises/avaliacao_clusters.py:** Realiza análise estatística detalhada dos clusters, sugere nomes de perfis, gera e salva todos os gráficos de validação em `dados/resultados/analises/`.
 
 ---

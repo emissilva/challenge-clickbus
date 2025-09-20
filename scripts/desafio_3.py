@@ -8,6 +8,8 @@ from math import sqrt
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from xgboost import XGBClassifier, XGBRegressor
 from contextlib import redirect_stdout
+from sklearn.linear_model import LogisticRegression
+
 
 log_path = 'dados/resultados/desafio_3/saida_completa.log'
 output_csv = 'dados/resultados/desafio_3/resultados_classificacao.csv'
@@ -17,8 +19,15 @@ os.makedirs('dados/resultados/desafio_3', exist_ok=True)
 with open(log_path, 'w') as f, redirect_stdout(f):
     # 1. Leitura e tratamento dos dados detalhados (amostragem para evitar travamento)
     detalhado = pd.read_csv('dados/resultados/desafio_1/detalhado_tratado.csv')
-    if len(detalhado) > 100000:
-        detalhado = detalhado.sample(n=100000, random_state=42)
+    if len(detalhado) > 1000000:
+        detalhado = detalhado.sample(n=1000000, random_state=42)
+
+    # Top 10 clientes que mais compram
+    top_clientes_df = detalhado['fk_contact'].value_counts().head(10).reset_index()
+    top_clientes_df.columns = ['fk_contact', 'compras']
+    print("\nTop 10 clientes que mais compram:")
+    for i, row in top_clientes_df.iterrows():
+        print(f"{i+1}. {row['fk_contact']} - {row['compras']} compras")
     detalhado['purchase_datetime'] = pd.to_datetime(detalhado['purchase_datetime'])
     data_max = detalhado['purchase_datetime'].max()
     data_min = data_max - pd.Timedelta(days=365)
@@ -156,20 +165,7 @@ with open(log_path, 'w') as f, redirect_stdout(f):
         X_scaled, y_enc, idx, test_size=0.2, random_state=42, stratify=y_enc
     )
 
-    # 14. Baseline: prever trecho mais comum do dataset
-    trecho_mais_comum = df['target_trecho'].mode()[0]
-    y_pred_baseline = np.full_like(y_test, fill_value=le_target.transform([trecho_mais_comum])[0])
-    print("\n--- Baseline: Previsão do trecho mais comum do dataset ---")
-    print(classification_report(
-        le_target.inverse_transform(y_test),
-        le_target.inverse_transform(y_pred_baseline),
-        zero_division=0
-    ))
-    print(f"Acurácia: {accuracy_score(le_target.inverse_transform(y_test), le_target.inverse_transform(y_pred_baseline)):.2f}")
-
     # 15. Modelo de classificação multi-classe (XGBoost ou LogisticRegression)
-    # Troque para LogisticRegression se quiser testar modelo mais simples
-    from sklearn.linear_model import LogisticRegression
     # clf = XGBClassifier(
     #     objective='multi:softmax',
     #     num_class=len(le_target.classes_),
@@ -179,7 +175,12 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     #     n_estimators=10,
     #     max_depth=2
     # )
-    clf = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=200, class_weight='balanced', random_state=42)
+    # Checar se há NaN ou infinito nas features padronizadas
+    if np.isnan(X_scaled).any() or np.isinf(X_scaled).any():
+        print("ERRO: Existem valores NaN ou infinito nas features após o StandardScaler. Verifique o pré-processamento dos dados.")
+        exit(1)
+
+    clf = LogisticRegression(solver='lbfgs', max_iter=200, class_weight='balanced', random_state=42)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print("\n--- Classificação: Previsão do próximo trecho (LogisticRegression) ---")
@@ -213,14 +214,12 @@ with open(log_path, 'w') as f, redirect_stdout(f):
             ))
 
     # 17. Regressão para dias até próxima compra (XGBoost)
-    reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, n_estimators=10, max_depth=2)
+    reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, n_estimators=30, max_depth=5)
     reg.fit(X_train, df.loc[idx_train, 'dias_ate_proxima'])
     y_pred_reg = reg.predict(X_test)
     rmse = sqrt(mean_squared_error(df.loc[idx_test, 'dias_ate_proxima'], y_pred_reg))
     print(f"\n--- Regressão: Dias até próxima compra (XGBoostRegressor) ---")
     print(f"RMSE: {rmse:.2f}")
-
-
 
     # 18. Função para prever para cliente específico (última linha do histórico)
     def prever_para_cliente(fk_contact):
@@ -229,6 +228,7 @@ with open(log_path, 'w') as f, redirect_stdout(f):
             print('Cliente sem histórico suficiente.')
             return
         i = len(hist) - 2
+        # Features numéricas
         linha = {
             'recencia': (hist.iloc[-1]['purchase_datetime'] - hist.iloc[i]['purchase_datetime']).days,
             'frequencia': i+1,
@@ -237,14 +237,56 @@ with open(log_path, 'w') as f, redirect_stdout(f):
             'destinos_unicos': hist.iloc[:i+1]['place_destination_departure'].nunique(),
             'empresas_diferentes': hist.iloc[:i+1]['fk_departure_ota_bus_company'].nunique(),
             'meses_distintos': hist.iloc[:i+1]['purchase_datetime'].dt.month.nunique(),
-            'dias_semana_distintos': hist.iloc[:i+1]['purchase_datetime'].dt.weekday.nunique()
+            'dias_semana_distintos': hist.iloc[:i+1]['purchase_datetime'].dt.weekday.nunique(),
+            'mes_atual': hist.iloc[-1]['purchase_datetime'].month,
+            'dia_semana_atual': hist.iloc[-1]['purchase_datetime'].weekday(),
+            'intervalo_medio': hist['purchase_datetime'].diff().dt.days.expanding().mean().shift().iloc[-1] if i > 0 else 0,
+            'tempo_desde_primeira': (hist.iloc[-1]['purchase_datetime'] - hist.iloc[0]['purchase_datetime']).days
         }
-        X_row = scaler.transform([list(linha.values())])
+        # Features categóricas: trecho_mais_frequente, empresa_mais_frequente, ultimo_trecho
+        def rolling_mode(s):
+            counts = {}
+            for val in s:
+                counts[val] = counts.get(val, 0) + 1
+            if counts:
+                return max(counts, key=counts.get)
+            return s.iloc[-1]
+        if i > 0:
+            trecho_mais_frequente = rolling_mode(hist.iloc[:i+1]['trecho'])
+            empresa_mais_frequente = rolling_mode(hist.iloc[:i+1]['fk_departure_ota_bus_company'])
+        else:
+            trecho_mais_frequente = hist.iloc[0]['trecho']
+            empresa_mais_frequente = hist.iloc[0]['fk_departure_ota_bus_company']
+        ultimo_trecho = hist.iloc[i]['trecho'] if i > 0 else hist.iloc[0]['trecho']
+        # Codificar categóricas com os mesmos códigos do treino
+        for col, val in zip(['trecho_mais_frequente', 'empresa_mais_frequente', 'ultimo_trecho'], [trecho_mais_frequente, empresa_mais_frequente, ultimo_trecho]):
+            if col in df.columns:
+                cat = df[col].astype('category')
+                try:
+                    code = cat.cat.categories.get_loc(val)
+                except KeyError:
+                    code = -1  # valor não visto no treino
+                linha[col] = code
+        # Cluster se existir
+        if 'cluster' in df.columns:
+            linha['cluster'] = hist['cluster'].iloc[-1] if 'cluster' in hist.columns else -1
+        # Garantir ordem das features
+        X_row = [linha[col] for col in feature_cols]
+        X_row = scaler.transform([X_row])
         pred_code = clf.predict(X_row)[0]
         pred_trecho = le_target.inverse_transform([pred_code])[0]
-        print(f'Previsão para {fk_contact}: {pred_trecho}')
+        # Prever dias até próxima compra
+        try:
+            pred_dias = reg.predict(X_row)[0]
+            print(f'Previsão para {fk_contact}: próximo trecho = {pred_trecho} | dias até próxima compra = {pred_dias:.1f}')
+        except Exception as e:
+            print(f'Previsão para {fk_contact}: próximo trecho = {pred_trecho} | (erro ao prever dias: {e})')
 
     prever_para_cliente('cliente_1')
+    # Prever para os top 10 clientes
+    print("\nPrevisão para os top 10 clientes:")
+    for fk in top_clientes_df['fk_contact']:
+        prever_para_cliente(fk)
 
 # Ao final, imprima um resumo no terminal
 print(f"\nResumo salvo em {log_path}. Veja o arquivo para detalhes completos.")
