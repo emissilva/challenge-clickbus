@@ -157,6 +157,11 @@ with open(log_path, 'w') as f, redirect_stdout(f):
     y_enc = le_target.fit_transform(y)
 
     # 12. Padronizar features
+    # Corrigir valores inválidos antes do scaler
+    X = X.replace([np.inf, -np.inf], np.nan)
+    X = X.fillna(0)
+    # Corrigir valores inválidos no target de regressão
+    y_reg = df.loc[idx, 'dias_ate_proxima'].replace([np.inf, -np.inf], np.nan).fillna(0)
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
@@ -215,9 +220,9 @@ with open(log_path, 'w') as f, redirect_stdout(f):
 
     # 17. Regressão para dias até próxima compra (XGBoost)
     reg = XGBRegressor(objective='reg:squarederror', random_state=42, n_jobs=-1, n_estimators=30, max_depth=5)
-    reg.fit(X_train, df.loc[idx_train, 'dias_ate_proxima'])
+    reg.fit(X_train, y_reg.loc[idx_train])
     y_pred_reg = reg.predict(X_test)
-    rmse = sqrt(mean_squared_error(df.loc[idx_test, 'dias_ate_proxima'], y_pred_reg))
+    rmse = sqrt(mean_squared_error(y_reg.loc[idx_test], y_pred_reg))
     print(f"\n--- Regressão: Dias até próxima compra (XGBoostRegressor) ---")
     print(f"RMSE: {rmse:.2f}")
 
@@ -270,9 +275,10 @@ with open(log_path, 'w') as f, redirect_stdout(f):
         # Cluster se existir
         if 'cluster' in df.columns:
             linha['cluster'] = hist['cluster'].iloc[-1] if 'cluster' in hist.columns else -1
-        # Garantir ordem das features
-        X_row = [linha[col] for col in feature_cols]
-        X_row = scaler.transform([X_row])
+        # Garantir ordem das features e manter nomes para evitar warning do sklearn
+        import pandas as pd
+        X_row = pd.DataFrame([linha], columns=feature_cols)
+        X_row = scaler.transform(X_row)
         pred_code = clf.predict(X_row)[0]
         pred_trecho = le_target.inverse_transform([pred_code])[0]
         # Prever dias até próxima compra
