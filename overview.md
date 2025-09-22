@@ -1,3 +1,6 @@
+## Análise dos Clusters e Gráficos Gerados
+
+O script `scripts/analises/avaliacao_clusters.py` realiza uma análise detalhada dos clusters de clientes, gerando estatísticas e gráficos salvos em `dados/resultados/analises/`.
 ---
 
 
@@ -53,6 +56,9 @@ Preparar, enriquecer e anonimizar os dados brutos de compras, gerar dois dataset
 	- `dados/resultados/desafio_1/df_tratado.csv`: dataset agregado por cliente, com métricas e cluster.
 5. Clusterização dos clientes via KMeans (4 clusters principais, parametrizável), com atribuição de um cluster especial ('outliers') para clientes fora do padrão (detecção via IQR).
 6. Nomeação dinâmica dos clusters: os nomes são sugeridos automaticamente com base na análise estatística das features (frequência, ticket médio, recência), resultando em perfis como "Clientes muito frequentes", "Clientes de ticket alto e baixa frequência", "Clientes de baixo valor", etc. O cluster 'outliers' é mantido para clientes fora do padrão.
+
+**Como e por que os nomes dos clusters são definidos:**
+Os nomes dos clusters são atribuídos automaticamente pelo script de análise estatística (`avaliacao_clusters.py`). A lógica utiliza as medianas das principais métricas de cada grupo (como frequência de compra, ticket médio e recência) para identificar padrões de comportamento. Assim, cada cluster recebe um nome descritivo que reflete o perfil predominante dos clientes daquele grupo, facilitando a comunicação com áreas de negócio e a interpretação dos resultados. Essa abordagem torna a segmentação mais transparente e útil para ações estratégicas, pois os nomes são sempre baseados em dados reais e atualizados do próprio projeto.
 
 ---
 

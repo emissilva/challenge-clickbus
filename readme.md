@@ -13,7 +13,9 @@ O objetivo é:
 
 ---
 
+
 ## 2. Fluxo de Trabalho (Pipeline)
+
 
 
 
@@ -55,6 +57,7 @@ challenge-clickbus/
 ```
 
 ---
+
 
 ## 3. Scripts do Pipeline
 
@@ -101,23 +104,29 @@ challenge-clickbus/
    - **Modelagem:**
      - O modelo principal é uma `LogisticRegression` multinomial balanceada, robusta para múltiplas classes e dados tabulares.
      - As features categóricas são codificadas automaticamente.
-   - O baseline foi removido para focar apenas no modelo supervisionado.
-   - **Treinamento:**
-     - O dataset é dividido em treino e teste (80/20, estratificado).
-     - O modelo é treinado apenas nas classes mais frequentes.
-     - Métricas de classificação (accuracy, f1-score, precision, recall) são salvas para o conjunto geral e por cluster de cliente.
+
+    - **Treinamento:**
+       - O dataset é dividido em treino e teste (80/20, estratificado).
+       - O modelo é treinado apenas nas classes mais frequentes.
+       - Métricas de classificação (accuracy, f1-score, precision, recall) são salvas para o conjunto geral e por cluster de cliente.
        - O script também realiza uma regressão para prever o número de dias até a próxima compra (XGBoostRegressor).
     - **Função para previsão individual e top clientes:**
        - Permite prever o próximo trecho provável e o tempo até a próxima compra para qualquer cliente, inclusive automaticamente para os 10 clientes que mais compram.
 
-- **Outputs:**
-    - `saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
-    - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
-    - Gráficos e análises visuais salvos em `dados/resultados/analises/`.
+
+### 3.4. `analises/avaliacao_clusters.py` — Análise Estatística e Visual dos Clusters
+   - Gera estatísticas descritivas e gráficos dos clusters, sugere nomes automáticos baseados em análise estatística das principais features, e salva todos os outputs em `dados/resultados/analises/`.
+
+**Outputs:**
+   - `saida_completa.log`: log completo dos resultados, métricas globais e por cluster.
+   - `resultados_classificacao.csv`: real vs previsto para cada cliente no teste, incluindo cluster.
+   - Gráficos e análises visuais salvos em `dados/resultados/analises/`.
 
 ---
 
+
 ## 4. Como Executar
+
 
 ### 4.1. Execução Manual
 
@@ -170,11 +179,14 @@ Se possível, mantenha o arquivo bruto completo para garantir máxima flexibilid
    ```
 4. Analise os resultados em `dados/resultados/`.
 
-> **Dica:** Para validação visual dos clusters e das previsões, recomenda-se executar também o script `scripts/analises/avaliacao_clusters.py`, que gera gráficos em `dados/resultados/analises/`. Esta etapa é opcional, mas altamente recomendada para análise exploratória e apresentação dos resultados.
+
+5. (Opcional) Para validação visual dos clusters e das previsões, execute também o script `scripts/analises/avaliacao_clusters.py`, que gera gráficos em `dados/resultados/analises/`. Esta etapa é altamente recomendada para análise exploratória e apresentação dos resultados.
+
 
 ### 4.2. Como rodar com container (Docker ou Podman)
 
 Você pode executar todo o pipeline em um container, sem precisar instalar dependências Python localmente.
+
 
 #### Usando Docker Compose
 
@@ -185,6 +197,7 @@ Você pode executar todo o pipeline em um container, sem precisar instalar depen
 docker-compose up --build
 ```
 
+
 #### Usando Podman Compose
 
 1. Certifique-se de ter o Podman e o podman-compose instalados.
@@ -194,15 +207,16 @@ docker-compose up --build
 podman-compose up --build
 ```
 
-O pipeline será executado automaticamente conforme definido no arquivo `docker-compose.yml`.
 
+O pipeline será executado automaticamente conforme definido no arquivo `docker-compose.yml`.
 Os resultados e arquivos gerados ficarão disponíveis na pasta `dados/resultados/`.
 
 ---
 
 
 
-## 6. Privacidade e Dados Sensíveis
+
+## 5. Privacidade e Dados Sensíveis
 
 Todos os dados de clientes, rodoviárias e empresas são anonimizados durante o processamento. Nenhum dado sensível ou identificador real é mantido nos outputs finais, garantindo a privacidade dos clientes e a conformidade com boas práticas de proteção de dados.
 - Todos os scripts consideram apenas os últimos 365 dias de dados.
