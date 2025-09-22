@@ -5,3 +5,4 @@ dados/**/*.csv
 dados/resultados/desafio_3/*.log
 # Arquivos de sistema do macOS
 .DS_Store
+**/.DS_Store
