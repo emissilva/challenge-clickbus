@@ -11,6 +11,8 @@ O objetivo é:
 * Construir modelos de Machine Learning para prever a próxima compra de um cliente.
 * Gerar outputs intermediários e finais para análise exploratória e validação dos modelos.
 
+> **Documentação completa:** Para detalhes técnicos e explicações aprofundadas sobre o funcionamento do pipeline, consulte o arquivo `overview.md`. O repositório também inclui a apresentação em PDF realizada para a ClickBus.
+
 ---
 
 
